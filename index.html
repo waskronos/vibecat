@@ -1,0 +1,30 @@
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Vibecat</title>
+  <style> /* css */
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: transparent;
+    }
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      -webkit-app-region: drag;
+    }
+    #cat {
+      width: 230px; /* 46*5 images*/
+      height: 185px; /* 37*5 */
+      background-image: url('assets/cat-chill.png');
+      background-size: 1840px 185px;
+      image-rendering: pixelated;
+    }
+  </style>
+</head>
+<body>
+    <div id="cat"></div>
+    <script src="renderer.js"></script>
+</body>
+</html>
