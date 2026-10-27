@@ -13,6 +13,7 @@
       align-items: center;
       justify-content: center;
       -webkit-app-region: drag;
+      flex-direction: column;
     }
     #cat {
       width: 230px; /* 46*5 images*/
@@ -21,10 +22,23 @@
       background-size: 1840px 185px;
       image-rendering: pixelated;
     }
+    #song {
+        margin: 8px 0 0;
+        color: white;
+        font-family: 'Bahnschrift', sans-serif;
+        font-weight: 300;               /* light */
+        font-stretch: semi-condensed;   /* slightly narrow */
+        font-size: 12px;
+        letter-spacing: 0.04em;         /* a little air between letters */
+        color: rgba(255, 255, 255, 0.85);
+        text-align: center;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+    }
   </style>
 </head>
 <body>
     <div id="cat"></div>
+    <p id = "song"> </p>
     <script src="renderer.js"></script>
 </body>
 </html>

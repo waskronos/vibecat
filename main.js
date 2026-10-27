@@ -2,8 +2,10 @@ const {app, BrowserWindow} = require('electron');
 const { execFile } = require('child_process');
 const path = require('path');
 
+let win;
+
 function createWindow() {
-  const win = new BrowserWindow({
+  win = new BrowserWindow({
     width: 300,
     height: 300,
     transparent: true,
@@ -11,7 +13,11 @@ function createWindow() {
     alwaysOnTop: true,
     resizable: false,
     hasShadow: false,
+     webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+    },
   });
+  win.webContents.openDevTools({ mode: 'detach' });
 
   win.loadFile('index.html');
 }
@@ -35,9 +41,26 @@ function getNowPlaying(){
     });
 }
 
+let lastSong = null;
+
+async function checkSong(){
+    try {
+        // console.log('poll at', new Date().toLocaleTimeString()); //debug to check poll working
+        const song = await getNowPlaying();
+        win.webContents.send('song', song); /* send the song to the renderer process so it can update the UI */
+
+        const current = song.playing ? `${song.artist} - ${song.title}` : nothing; /* if song.playing is true, then we get the artist and title, else we get nothing */
+        
+        if (current !== lastSong) {
+            lastSong = current;
+            console.log(`Now playing: ${current}`);
+        }
+    } catch (err) {
+        console.error('Could not get song:', err.message);
+    }
+}
 app.whenReady().then(() => {
     createWindow();
-    getNowPlaying()
-    .then(song => console.log(song)) /* debug */
-    .catch(err => console.error('Could not get song:', err.message));
+    checkSong()
+    setInterval(checkSong, 3000); /* check every 3 seconds for new song */
 });

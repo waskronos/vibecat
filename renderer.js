@@ -16,3 +16,8 @@ function tick(now){
 }
 
 requestAnimationFrame(tick);
+
+const songText = document.getElementById('song');
+window.vibecat.onSong((song) => {
+    songText.textContent = song.playing ? `${song.artist} - ${song.title}` : 'Nothing playing';
+});
