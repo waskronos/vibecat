@@ -12,5 +12,8 @@
   "type": "commonjs",
   "devDependencies": {
     "electron": "^45.0.0"
+  },
+  "dependencies": {
+    "firebase": "^13.1.0"
   }
 }

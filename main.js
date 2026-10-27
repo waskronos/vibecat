@@ -1,7 +1,7 @@
 const {app, BrowserWindow} = require('electron');
 const { execFile } = require('child_process');
 const path = require('path');
-
+const { getCached, saveToCache } = require('./src/cache');
 const { getSongData } = require('./src/songbpm.js');
 const MUSIC_APPS = ['YouTube Music.exe', 'Spotify.exe']
 
@@ -73,19 +73,29 @@ async function checkSong(){
 
 async function lookUpBpm(song, label){
     win.webContents.send('bpm', {status : 'thinking'}); /* send the song to the renderer process so it can update the UI */
-    try{
-        const data = await getSongData(song.artist, song.title);
+    try {
+    let data = await getCached(song.artist, song.title);
 
-        if(label !== lastSong) return; // if the song has changed while we waited, so throw this awayyyy
-        if(data){
-            win.webContents.send('bpm', {status : 'found', ...data});
-        } else {
-            win.webContents.send('bpm', {status : 'unknown'});
-        }
-    } catch(err){
-            console.error('Could not get bpm:', err.message);
-            win.webContents.send('bpm', {status : 'error'});
+    if (data === undefined) {
+        console.log('Asking songbpm:', label);
+        data = await getSongData(song.artist, song.title);
+        saveToCache(song.artist, song.title, data)
+        .catch(err => console.error('Cache save failed:', err.message));
+    } else {
+        console.log('From cache:', label);
     }
+
+    if (label !== lastSong) return;
+
+    if (data && data.tempo) {
+        win.webContents.send('bpm', { status: 'found', ...data });
+    } else {
+        win.webContents.send('bpm', { status: 'unknown' });
+    }
+    } catch (err) {
+    console.error('Could not get bpm:', err.message);
+    win.webContents.send('bpm', { status: 'error' });
+}
 }
 
 app.whenReady().then(() => {
