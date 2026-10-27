@@ -89,7 +89,10 @@ async function lookUpBpm(song, label){
 }
 
 app.whenReady().then(() => {
-    createWindow();
-    checkSong()
-    setInterval(checkSong, 3000); /* check every 3 seconds for new song */
+  createWindow();
+
+  win.webContents.once('did-finish-load', () => {
+    checkSong();
+    setInterval(checkSong, 3000);
+  });
 });
