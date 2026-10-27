@@ -21,3 +21,5 @@ const songText = document.getElementById('song');
 window.vibecat.onSong((song) => {
     songText.textContent = song.playing ? `${song.artist} - ${song.title}` : 'Nothing playing';
 });
+
+window.vibecat.onBPM((data) => console.log('bpm message:', data));

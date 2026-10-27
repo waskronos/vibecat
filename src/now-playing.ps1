@@ -47,7 +47,6 @@ $props = Await ($session.TryGetMediaPropertiesAsync()) ([Windows.Media.Control.G
     title = $props.Title
     artist = $props.Artist
     album = $props.AlbumTitle
-    albumArt = $props.AlbumArtUri.AbsoluteUri
     app = $session.SourceAppUserModelId
     position = $session.GetTimelineProperties().Position.TotalMilliseconds
     updated  = $session.GetTimelineProperties().LastUpdatedTime.ToString('o')

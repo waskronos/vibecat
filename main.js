@@ -2,6 +2,9 @@ const {app, BrowserWindow} = require('electron');
 const { execFile } = require('child_process');
 const path = require('path');
 
+const { getSongData } = require('./src/songbpm.js');
+const MUSIC_APPS = ['YouTube Music.exe', 'Spotify.exe']
+
 let win;
 
 function createWindow() {
@@ -44,21 +47,47 @@ function getNowPlaying(){
 let lastSong = null;
 
 async function checkSong(){
+    
+
     try {
         // console.log('poll at', new Date().toLocaleTimeString()); //debug to check poll working
         const song = await getNowPlaying();
         win.webContents.send('song', song); /* send the song to the renderer process so it can update the UI */
 
-        const current = song.playing ? `${song.artist} - ${song.title}` : nothing; /* if song.playing is true, then we get the artist and title, else we get nothing */
+        const current = song.playing ? `${song.artist} - ${song.title}` : 'nothing'; /* if song.playing is true, then we get the artist and title, else we get nothing */
         
         if (current !== lastSong) {
-            lastSong = current;
-            console.log(`Now playing: ${current}`);
+            lastSong = current; // we store the last song so we can check if it changed, and only log if it did 
+            console.log("Now Playing: ", current);
+    
+            if(song.playing && MUSIC_APPS.includes(song.app)) {
+            lookUpBpm(song, current); // if the song is playing and the app is in our list, we look up the bpm 
+        } else {
+            win.webContents.send('bpm', {status : 'idle'}); // if the song is not playing, we send idle to the renderer process
+        }
         }
     } catch (err) {
         console.error('Could not get song:', err.message);
     }
 }
+
+async function lookUpBpm(song, label){
+    win.webContents.send('bpm', {status : 'thinking'}); /* send the song to the renderer process so it can update the UI */
+    try{
+        const data = await getSongData(song.artist, song.title);
+
+        if(label !== lastSong) return; // if the song has changed while we waited, so throw this awayyyy
+        if(data){
+            win.webContents.send('bpm', {status : 'found', ...data});
+        } else {
+            win.webContents.send('bpm', {status : 'unknown'});
+        }
+    } catch(err){
+            console.error('Could not get bpm:', err.message);
+            win.webContents.send('bpm', {status : 'error'});
+    }
+}
+
 app.whenReady().then(() => {
     createWindow();
     checkSong()
