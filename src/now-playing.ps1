@@ -41,15 +41,19 @@ if ($null -eq $session) {
 
 $props = Await ($session.TryGetMediaPropertiesAsync()) ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionMediaProperties]) #ask for song info
 
+
+
 #part 3 - now convert to json for electron to read 
+$timeline = $session.GetTimelineProperties() #call timeline once to store data and we use it multiple times without calling again
 [PSCustomObject]@{ #builds an object
     playing = $true
     title = $props.Title
     artist = $props.Artist
     album = $props.AlbumTitle
     app = $session.SourceAppUserModelId
-    position = $session.GetTimelineProperties().Position.TotalMilliseconds
-    updated  = $session.GetTimelineProperties().LastUpdatedTime.ToString('o')
+    position = $timeline.Position.TotalMilliseconds
+    duration = $timeline.EndTime.Subtract($timeline.StartTime).TotalMilliseconds  #ending timestamp minus starting timestamp = duration
+    updated  = $timeline.LastUpdatedTime.ToString('o')
     status = $session.GetPlaybackInfo().PlaybackStatus.ToString()
     
 } | ConvertTo-Json

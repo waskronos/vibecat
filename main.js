@@ -3,6 +3,7 @@ const { execFile } = require('child_process');
 const path = require('path');
 const { getCached, saveToCache } = require('./src/cache');
 const { getSongData } = require('./src/songbpm.js');
+const { searchLyrics, findBest } = require('./src/lyrics.js');
 const MUSIC_APPS = ['YouTube Music.exe', 'Spotify.exe']
 
 let win;
@@ -62,6 +63,7 @@ async function checkSong(){
     
             if(song.playing && MUSIC_APPS.includes(song.app)) {
             lookUpBpm(song, current); // if the song is playing and the app is in our list, we look up the bpm 
+            lookUpLyrics(song, current); // if the song is playing and the app is in our list, we look up the lyrics    
         } else {
             win.webContents.send('bpm', {status : 'idle'}); // if the song is not playing, we send idle to the renderer process
         }
@@ -97,10 +99,32 @@ async function lookUpBpm(song, label){
     win.webContents.send('bpm', { status: 'error' });
 }
 }
+async function lookUpLyrics(song, label) {
+    try {
+        const results = await searchLyrics(song.artist, song.title);
+        const windowsSeconds = song.duration / 1000;
+        const synced = results.filter(r => r.syncedLyrics);
+        const best = findBest(synced, windowsSeconds);
+
+        console.log(`${label}`);
+        console.log(`Windows: ${windowsSeconds.toFixed(1)}s`);
+        console.log(`LRCLIB: ${results.map(r => `${r.duration}s`).join(', ') || 'none'}`);
+
+        if (!best) {
+            console.log('no synced lyrics');
+            return;
+        }
+
+        const off = Math.abs(best.duration - windowsSeconds);
+        const line = `   picked: ${best.trackName} - ${best.albumName} (${off.toFixed(1)}s off)`;
+        if (off > 5) console.warn(line); else console.log(line);
+    } catch (err) {
+        console.error('Lyrics lookup failed:', err.message);
+    }
+}
 
 app.whenReady().then(() => {
   createWindow();
-
   win.webContents.once('did-finish-load', () => {
     checkSong();
     setInterval(checkSong, 3000);
