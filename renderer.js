@@ -12,9 +12,24 @@ const THINK_FRAME_MS = 125; // how long each frame should last in ms when thinki
 const SHEETS = {
     chill: { file: 'assets/cat-chill.png', frames: 8, speed: 1.0 },
     intense: { file: 'assets/cat-intense.png', frames: 8, speed: 1.0 },
-    bittersweet: { file: 'assets/cat-bittersweet.png', frames: 32, speed: 0.5 },
+    bittersweet: { file: 'assets/cat-bittersweet.png', frames: 32, speed: 1.0 },
     think: { file: 'assets/cat-think.png', frames: 8},
+    hype: { file: 'assets/cat-hype.png', frames: 8, speed: 1.0 },
+    somber: { file: 'assets/cat-somber.png', frames: 16, speed: 1.0 },
 };
+
+const POSITIVITY = { somber: -2, melancholic: -1, neutral: 0, upbeat: 1, exuberant: 2 }; // used to determine which sheet to use based on the vibe of the song
+
+function pickMood(data){
+    const positivity = POSITIVITY[data.vibe] ?? (data.mode === 'minor' ? -1 : 1); // if the vibe is not in the list, we use the mode to determine positivity (minor = negative, major = positive)
+    const loud = data.energy === 'high';
+
+    if(positivity < 0 && loud) return 'intense';
+    if(positivity < 0) return 'bittersweet';
+    if(positivity === -2) return 'somber'; 
+    if(positivity === 2 && loud) return 'hype';
+    return 'chill'; // default to chill if none of the above
+}
 
 //---the knowns---
 let state = 'idle'; //default when nothing is playing
@@ -63,7 +78,7 @@ window.vibecat.onBPM((data) =>
     {state = data.status;
     if (state === 'found'){
         bpm = data.tempo;
-        useSheet('chill');
+        useSheet(pickMood(data));
     } else {
         useSheet('think');
     }   
