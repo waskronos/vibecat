@@ -3,7 +3,7 @@ const { execFile } = require('child_process');
 const path = require('path');
 const { getCached, saveToCache } = require('./src/cache');
 const { getSongData } = require('./src/songbpm.js');
-const { searchLyrics, findBest } = require('./src/lyrics.js');
+const { searchLyrics, findBest, parseLyrics, findChorus } = require('./src/lyrics.js');
 const MUSIC_APPS = ['YouTube Music.exe', 'Spotify.exe']
 
 let win;
@@ -101,12 +101,12 @@ async function lookUpBpm(song, label){
 }
 async function lookUpLyrics(song, label) {
     try {
-        const results = await searchLyrics(song.artist, song.title);
-        const windowsSeconds = song.duration / 1000;
-        const synced = results.filter(r => r.syncedLyrics);
+        const results = await searchLyrics(song.artist, song.title); //get lyrics from lrclib API
+        const windowsSeconds = song.duration / 1000; //convert duration from ms to seconds
+        const synced = results.filter(r => r.syncedLyrics); //filter out results that don't have synced lyrics so all this happens only with results that have synced lyrics
         const best = findBest(synced, windowsSeconds);
 
-        console.log(`${label}`);
+        console.log(`${label}`); //debug lines
         console.log(`Windows: ${windowsSeconds.toFixed(1)}s`);
         console.log(`LRCLIB: ${results.map(r => `${r.duration}s`).join(', ') || 'none'}`);
 
@@ -117,7 +117,15 @@ async function lookUpLyrics(song, label) {
 
         const off = Math.abs(best.duration - windowsSeconds);
         const line = `   picked: ${best.trackName} - ${best.albumName} (${off.toFixed(1)}s off)`;
-        if (off > 5) console.warn(line); else console.log(line);
+        
+        const sections = findChorus(parseLyrics(best), song.duration);
+        const mmss = ms => `${Math.floor(ms / 60000)}:${String(Math.floor(ms / 1000) % 60).padStart(2, '0')}`;
+        for (const s of sections) {
+                console.log(`   🎤 chorus ${mmss(s.start)} → ${mmss(s.end)}`);
+        }
+        
+        if (off > 5) console.warn(line); 
+        else console.log(line);
     } catch (err) {
         console.error('Lyrics lookup failed:', err.message);
     }
