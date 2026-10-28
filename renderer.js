@@ -77,7 +77,7 @@ function tick(now){
     let frame;
     if(state === 'found' && snapshot){
         const pos = songPosition();
-        const inChorus = choruses.some(c => pos >= c.start && pos <= c.end); // check if the current position is within any of the chorus sections T / F
+        const inChorus = choruses.some(c => pos >= c.start && pos < c.end); // check if the current position is within any of the chorus sections T / F
 
         useSheet(`${mood}-${inChorus ? 'drop' : 'normal'}`); // if we are in a chorus section, we use the drop sheet, else we use the normal sheet
 
@@ -88,16 +88,6 @@ function tick(now){
     }
 
     cat.style.backgroundPosition = `-${frame * FRAME_WIDTH}px 0px`;
-
-    if(snapshot){
-        const pos = songPosition();
-        const inChorus = choruses.some(s => pos >= s.start && pos <= s.end); // check if the current position is within any of the chorus sections (TRUE/FALSE)
-
-        if(inChorus !== wasInChorus){ // if the chorus state has changed, we update the sheet and the wasInChorus variable
-            wasInChorus = inChorus;
-            console.log(inChorus ? 'BEAT DROP' : 'back to normal', Math.floor(pos/1000), 's'); // log the time in seconds when the chorus state changes
-        }
-    }
     requestAnimationFrame(tick);
 }
 

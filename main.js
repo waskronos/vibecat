@@ -1,4 +1,4 @@
-const {app, BrowserWindow} = require('electron');
+const {app, BrowserWindow, Tray, Menu } = require('electron');
 const { execFile } = require('child_process');
 const path = require('path');
 const { getCached, saveToCache } = require('./src/cache');
@@ -7,6 +7,7 @@ const { searchLyrics, findBest, parseLyrics, findChorus } = require('./src/lyric
 const MUSIC_APPS = ['YouTube Music.exe', 'Spotify.exe']
 
 let win;
+let tray;
 
 function createWindow() {
   win = new BrowserWindow({
@@ -20,10 +21,25 @@ function createWindow() {
      webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
     },
-  });
-  win.webContents.openDevTools({ mode: 'detach' });
+  });   
 
   win.loadFile('index.html');
+}
+
+function createTray() {
+    tray = new Tray(path.join(__dirname, 'assets', 'tray.png'));
+    tray.setToolTip('VibeCat');
+
+    tray.setContextMenu(Menu.buildFromTemplate([
+        {
+            label: 'Click-through', //make an option to click through the window - this wont let you reposition the cat tho
+            type: 'checkbox',
+            checked: false,
+            click: (item) => win.setIgnoreMouseEvents(item.checked, { forward: true }), //electron forward mouse events to the window behind it
+        },
+        { type: 'separator' },
+        { label: 'Quit Vibecat', click: () => app.quit() },
+    ]));
 }
 
 function getNowPlaying(){
@@ -51,7 +67,6 @@ async function checkSong(){
     
 
     try {
-        // console.log('poll at', new Date().toLocaleTimeString()); //debug to check poll working
         const song = await getNowPlaying();
         win.webContents.send('song', song); /* send the song to the renderer process so it can update the UI */
 
@@ -79,12 +94,10 @@ async function lookUpBpm(song, label){
     let data = await getCached(song.artist, song.title);
 
     if (data === undefined) {
-        console.log('Asking songbpm:', label);
         data = await getSongData(song.artist, song.title);
         saveToCache(song.artist, song.title, data)
         .catch(err => console.error('Cache save failed:', err.message));
     } else {
-        console.log('From cache:', label);
     }
 
     if (label !== lastSong) return;
@@ -109,13 +122,11 @@ async function lookUpLyrics(song, label) {
         const best = findBest(synced, windowsSeconds); //song closest to the duration of the song we are playing (album versions, radio edits etc)
 
         if (!best) {
-            console.log(`No good match for ${label}`);
             win.webContents.send('chorus', []); //if no best match was found, we send an empty array to the renderer process so it doesnt affect cat
             return;
         }
 
         const sections = findChorus(parseLyrics(best), song.duration);
-        console.log(`🎤 ${sections.length} sections for ${label}`); //exact ms time of length of each chorus section
         win.webContents.send('chorus', sections); //send the sections to the renderer process so it can update the UI 
     } catch (err) {
         console.error('Lyrics lookup failed:', err.message);
@@ -124,6 +135,7 @@ async function lookUpLyrics(song, label) {
 }
 app.whenReady().then(() => {
   createWindow();
+  createTray();
   win.webContents.once('did-finish-load', () => {
     checkSong();
     setInterval(checkSong, 3000);
