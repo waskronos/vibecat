@@ -125,7 +125,7 @@ function findChorus(parsedLyrics, songDuration) {
             const next = parsedLyrics.find(l => l.time > last.time); 
             sections.push({ start: first.time, end: next ? next.time : songDuration }); 
 
-            for(m = k; m < k + n; m++) used[m] = true; //cross out the lines that were part of the chorus so we dont find them again
+            for(let m = k; m < k + n; m++) used[m] = true; //cross out the lines that were part of the chorus so we dont find them again
             k += n - 1; //end time is the last line's time, not the next line's time, so we subtract 1 from n
             //skip to the end of this chorus section, so we dont find it again
 
