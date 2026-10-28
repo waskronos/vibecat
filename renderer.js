@@ -5,19 +5,33 @@ const songText = document.getElementById('song');
 const SCALE = 5;
 const FRAMES = 8; // 8 frames in the spritesheet 
 const FRAMES_PER_BEAT = 8; // 8 frames per beat in the sheet
-const FRAME_WIDTH = 46 * SCALE; // each frame, scaled up
-const FRAME_HEIGHT = 37 * SCALE; 
+const FRAME_WIDTH = 52 * SCALE; // each frame, scaled up
+const FRAME_HEIGHT = 52 * SCALE; 
 const THINK_FRAME_MS = 125; // how long each frame should last in ms when thinking
 
-const SHEETS = {
-    chill: { file: 'assets/cat-chill.png', frames: 8, speed: 1.0 },
-    intense: { file: 'assets/cat-intense.png', frames: 8, speed: 1.0 },
-    bittersweet: { file: 'assets/cat-bittersweet.png', frames: 32, speed: 1.0 },
-    think: { file: 'assets/cat-think.png', frames: 8},
-    hype: { file: 'assets/cat-hype.png', frames: 8, speed: 1.0 },
-    somber: { file: 'assets/cat-somber.png', frames: 16, speed: 0.5 },
+let skin = 'cat'; //set default to cat
+const DEFAULT_SKIN = 'cat'; 
+
+const SKINS = {
+    cat: {
+        'chill-normal':       { frames: 8,  speed: 1.0 },
+        'chill-drop':         { frames: 16,  speed: 1.0 },
+        'hype-normal':        { frames: 8,  speed: 0.5 },
+        'hype-drop':          { frames: 16, speed: 1.0 },
+        'intense-normal':     { frames: 8,  speed: 1.0 },
+        'intense-drop':       { frames: 16, speed: 1.0 },
+        'bittersweet-normal': { frames: 32, speed: 1.0 },
+        'bittersweet-drop':   { frames: 8,  speed: 1.0 },
+        'somber-normal':      { frames: 16, speed: 0.5 },
+        'somber-drop':        { frames: 8,  speed: 1.0 },
+        'think-normal':       { frames: 8 },
+    },
+    girl: {
+        'chill-normal': { frames: 8, speed: 1.0 },
+    },
 };
 
+let mood = null;
 const POSITIVITY = { somber: -2, melancholic: -1, neutral: 0, upbeat: 1, exuberant: 2 }; // used to determine which sheet to use based on the vibe of the song
 
 let choruses = []; // store the chorus sections so we can use them to animate the cat
@@ -43,9 +57,12 @@ let sheet = null;
 
 //---helpersss---
 function useSheet(name) {
-    if (sheet === SHEETS[name]) return;
-    sheet = SHEETS[name];
-    cat.style.backgroundImage = `url(${sheet.file})`;
+    const from = SKINS[skin][name] ? skin : DEFAULT_SKIN; // if the skin doesn't have the sheet, use the default skin
+    const next = SKINS[from][name];
+    if (sheet === next) return;
+
+    sheet = next;
+    cat.style.backgroundImage = `url(assets/skins/${from}/${name}.png)`;
     cat.style.backgroundSize = `${sheet.frames * FRAME_WIDTH}px ${FRAME_HEIGHT}px`;
 }
 
@@ -59,6 +76,11 @@ function songPosition(){
 function tick(now){
     let frame;
     if(state === 'found' && snapshot){
+        const pos = songPosition();
+        const inChorus = choruses.some(c => pos >= c.start && pos <= c.end); // check if the current position is within any of the chorus sections T / F
+
+        useSheet(`${mood}-${inChorus ? 'drop' : 'normal'}`); // if we are in a chorus section, we use the drop sheet, else we use the normal sheet
+
         const frameMs = (60000 / bpm) / FRAMES_PER_BEAT / sheet.speed; // how long each frame should last in ms, based on bpm and speed of the sheet
         frame = Math.floor(songPosition() / frameMs) % sheet.frames; // where in song are we / how much for each frame = frame number, floored to remove decimal and then modded w number of frames to wrap around 
     } else {
@@ -90,10 +112,11 @@ window.vibecat.onSong((song) => {
 window.vibecat.onBPM((data) => 
     {state = data.status;
     if (state === 'found'){
+        mood = pickMood(data);
         bpm = data.tempo;
-        useSheet(pickMood(data));
+        useSheet(`${mood}-normal`);
     } else {
-        useSheet('think');
+        useSheet('think-normal');
     }   
 });
 
@@ -104,5 +127,5 @@ window.vibecat.onChorus((sections) => {
 
 //---start---
 
-useSheet('think');
+useSheet('think-normal');
 requestAnimationFrame(tick);
